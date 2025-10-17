@@ -39,6 +39,29 @@ export async function recommendProducts(
   return recommendProductsFlow(input);
 }
 
+const recommendProductsPrompt = ai.definePrompt({
+  name: 'recommendProductsPrompt',
+  input: {
+    schema: z.object({
+      viewedProductNames: z.array(z.string()),
+      allProductNames: z.array(z.string()),
+    }),
+  },
+  output: {
+    schema: RecommendProductsOutputSchema,
+  },
+  prompt: `You are a helpful e-commerce assistant for Nepal E-Mart.
+A user has recently viewed the following products:
+{{#each viewedProductNames}}- {{{this}}}
+{{/each}}
+
+Here is a list of all available products:
+{{#each allProductNames}}- {{{this}}}
+{{/each}}
+
+Based on their viewing history and the available products, recommend 3 other products they might like. Do not recommend products they have already viewed. Provide a short, compelling reason for each recommendation.`,
+});
+
 const recommendProductsFlow = ai.defineFlow(
   {
     name: 'recommendProductsFlow',
@@ -49,30 +72,7 @@ const recommendProductsFlow = ai.defineFlow(
     const allProducts = await getProducts();
     const allProductNames = allProducts.map(p => p.name);
 
-    const prompt = ai.definePrompt({
-      name: 'recommendProductsPrompt',
-      prompt: `You are a helpful e-commerce assistant for Nepal E-Mart.
-A user has recently viewed the following products:
-{{#each viewedProductNames}}- {{{this}}}
-{{/each}}
-
-Here is a list of all available products:
-{{#each allProductNames}}- {{{this}}}
-{{/each}}
-
-Based on their viewing history and the available products, recommend 3 other products they might like. Do not recommend products they have already viewed. Provide a short, compelling reason for each recommendation.`,
-      input: {
-        schema: z.object({
-          viewedProductNames: z.array(z.string()),
-          allProductNames: z.array(z.string()),
-        }),
-      },
-      output: {
-        schema: RecommendProductsOutputSchema,
-      },
-    });
-
-    const { output } = await prompt({
+    const { output } = await recommendProductsPrompt({
       viewedProductNames,
       allProductNames,
     });
